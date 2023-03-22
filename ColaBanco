@@ -1,0 +1,36 @@
+import simpy
+import random
+
+class Banco:
+    def __init__(self, env, num_cajeros):
+        self.env = env
+        self.cajeros = simpy.Resource(env, capacity=num_cajeros)
+        self.clientes_atendidos = 0
+
+    def atender_cliente(self, cliente):
+        yield self.env.timeout(random.uniform(0.5, 2))
+        print(f'Tiempo: {self.env.now:.2f}: Cliente {cliente} atendido.')
+
+def llegada_cliente(env, cliente, banco):
+    with banco.cajeros.request() as turno:
+        print(f'Tiempo: {env.now:.2f}: Llega cliente {cliente} y se une a la cola.')
+        yield turno
+        print(f'Tiempo: {env.now:.2f}: Cliente {cliente} es atendido.')
+        yield env.process(banco.atender_cliente(cliente))
+        banco.clientes_atendidos += 1
+        print(f'Tiempo: {env.now:.2f}: Cliente {cliente} termina la atención.')
+
+def simular(num_cajeros, tiempo_simulacion, tasa_llegada_clientes):
+    env = simpy.Environment()
+    banco = Banco(env, num_cajeros)
+    env.process(llegada_clientes(env, banco, tasa_llegada_clientes))
+    env.run(until=tiempo_simulacion)
+
+def llegada_clientes(env, banco, tasa_llegada_clientes):
+    cliente = 0
+    while True:
+        yield env.timeout(random.expovariate(tasa_llegada_clientes))
+        cliente += 1
+        env.process(llegada_cliente(env, cliente, banco))
+
+simular(num_cajeros=5, tiempo_simulacion=60, tasa_llegada_clientes=3)
